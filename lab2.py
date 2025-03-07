@@ -84,7 +84,7 @@ class State:
         count = 0
         for i in range(3):
             for j in range(3):
-                if self.matrix[i][j] != target[i][j]:
+                if self.matrix[i][j] != target.matrix[i][j]:
                     count += 1
         return count
 
@@ -116,22 +116,33 @@ class Node:
         self.parent = parent
         self.state = state
 
+# Функция эвристического поиска
 
-def A(start_matrix, target_matrix):
-    start_node = Node(start_matrix, None, 0)
+def A(start, target_matrix):
+
+    start_node = Node(start, None, 0)
+
+    # Если начальное состояние = конечное, то возвращаем его
     if start_node.state.check_goal(target_matrix):
         return start_node
 
+    # Объявляем очередь из узлов
     a_queue = [start_node]
-    passed_nodes = set()
+    # Пройденные узлы записываем в виде множества
+    passed_state_matrixes = set()
     step = 0
 
-    f = start_node.depth + start_matrix.h1(target_matrix)
+    # Считаем аддитивную оценочную стоимость
+    f = start_node.depth + start.h1(target_matrix)
 
-    while a_queue:
+    print(f)
+
+    node = a_queue[0]
+
+    # Пока не дошли до конечного состояния или не прошли все возможные узлы
+    while len(a_queue) < 10:
         step += 1
-        node = a_queue.pop(0)
-        passed_nodes.add(str(node.state.matrix))
+        passed_state_matrixes.add(str(node.state.matrix))
 
         print(f"\n--- Шаг {step} ---")
         print(f"Текущая вершина для раскрытия (глубина {node.depth}):")
@@ -142,137 +153,103 @@ def A(start_matrix, target_matrix):
         lengths = []
 
         for move in node.state.sequence():
+
             new_state = node.state.copy()
+
             if move == 'u':
                 u_state = new_state.up()
-                lengths.append(u_state.h2(target_matrix))
+                u_node = Node(u_state, node, node.depth + 1, move)
+                f = u_node.depth + u_state.h1(target_matrix)
+                lengths.append(f)
             else:
                 lengths.append(math.inf)
 
             if move == 'd':
                 d_state = new_state.down()
-                lengths.append(d_state.h2(target_matrix))
+                d_node = Node(d_state, node, node.depth + 1, move)
+                f = d_node.depth + d_state.h1(target_matrix)
+                lengths.append(f)
             else:
                 lengths.append(math.inf)
 
             if move == 'r':
                 r_state = new_state.right()
-                lengths.append(r_state.h2(target_matrix))
+                r_node = Node(r_state, node, node.depth + 1, move)
+                f = r_node.depth + r_state.h1(target_matrix)
+                lengths.append(f)
             else:
                 lengths.append(math.inf)
 
             if move == 'l':
                 l_state = new_state.left()
-                lengths.append(l_state.h2(target_matrix))
+                l_node = Node(l_state, node, node.depth + 1, move)
+                f = l_node.depth + l_state.h1(target_matrix)
+                lengths.append(f)
             else:
                 lengths.append(math.inf)
-            
-            if str(new_state.matrix) in passed_nodes:
+
+            if str(new_state.matrix) in passed_state_matrixes:
                 repeated_nodes.append(new_state)
-            else:
+                new_state = node.state.copy()
+                shortest = lengths.index(min(lengths))
 
-            shortest = lengths.index(min(lengths))
+                if shortest == 0:
+                    new_state.up()
+                elif shortest == 1:
+                    new_state.down()
+                elif shortest == 2:
+                    new_state.left()
+                elif shortest == 3:
+                    new_state.right()
 
-            if shortest == 0:
-                new_state.up()
-            elif shortest == 1:
-                new_state.down()
-            elif shortest == 2:
-                new_state.left()
-            elif shortest == 3:
-                new_state.right()
+                child_node = Node(new_state, node, node.depth + 1, move)
+                new_nodes.append(child_node)
+                a_queue.append(child_node)
+                passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
 
-            if str(new_state.matrix) in passed_nodes:
-                repeated_nodes.append(new_state)
             else:
                 # новый узел для нового состояния
                 child_node = Node(new_state, node, node.depth + 1, move)
                 new_nodes.append(child_node)
-                bfs_queue.append(child_node)
-                passed_nodes.add(str(new_state.matrix)) #добавляем в пройденные
+                a_queue.append(child_node)
+                passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
+
+            node = child_node
+
+            if new_state.check_goal(target_matrix): # является ли целевым
+                print("Целевое состояние достигнуто!")
+                print(f"Глубина {node.depth}")
+                return node
+    return None
 
 
+def info():
 
-def bfs(start_state, target_matrix):
-    """Ручной поиск в ширину (BFS) для решения головоломки "Пятнашки" 3x3."""
-    start_node = Node(start_state, None, 0)
-    if start_node.state.check_goal(target_matrix):
-        return start_node
+    start_matrix = [[5, 8, 3], [4, '*', 2], [7, 6, 1]]
+    target_matrix = [[1, 2, 3], [4, 5, 6], [7, 8, '*']]
 
-    bfs_queue = [start_node]
-    passed_nodes = set()
-    step = 0
+    empty_x = 1
+    empty_y = 1
 
-    while bfs_queue:
-        step += 1
-        node = bfs_queue.pop(0)
-        passed_nodes.add(str(node.state.matrix))
+    start = State(start_matrix, empty_x, empty_y)
+    print('Матрица с начальным состоянием: ')
+    print(start)
+    # создали матрицу с целевым состоянием
+    target = State(target_matrix, 2, 2)
+    print('Матрица с конечным состоянием:')
+    print(target)
+        
+    result = A(start, target)
 
-        print(f"\n--- Шаг {step} ---")
-        print(f"Текущая вершина для раскрытия (глубина {node.depth}):")
-        print(node.state)
-
-        if node.state.check_goal(target_matrix):
-            print("Целевое состояние достигнуто!")
-            return node
-
-        new_nodes = []
-        repeated_nodes = []
-        for move in node.state.sequence():
-            new_state = node.state.copy()
-            if move == 'u':
-                new_state.up()
-            elif move == 'd':
-                new_state.down()
-            elif move == 'r':
-                new_state.right()
-            elif move == 'l':
-                new_state.left()
-
-            if str(new_state.matrix) in passed_nodes:
-                repeated_nodes.append(new_state)
-            else:
-                child_node = Node(new_state, node, node.depth + 1, move)
-                new_nodes.append(child_node)
-                bfs_queue.append(child_node)
-                passed_nodes.add(str(new_state.matrix))
-
-        print("Вновь добавленные вершины:") #если это раскомментировать будет считать много часов не надо
-        for n in new_nodes:
-            print(n.state)
-
-        print("Выявленные повторные вершины:")
-        for n in repeated_nodes:
-            print(n)
-
-        print("Текущая кайма (вершины, ожидающие раскрытия):")
-        for n in bfs_queue:
-            print(n.state)
-
-        print('Нажмите: \nenter - для перехода к следующему шагу\nescape - для выхода из программы')
-        while True:
-                key = keyboard.read_event()
-
-                if key.event_type == "down": 
-                    if key.name == "enter":
-                        break
-
-                elif key.name == "esc":
-                    return None
+    if result:
+        print("\nпоследовательность:", end=' ')
+        actions = [] #список для последовательности перемещений
+        while result:
+            if result.action:
+                actions.append(result.action) # заносим перемещение в список
+            result = result.parent # переход к родительскому узлу
+        actions.reverse() # переворачиваем список
+        print(" ".join(actions)) # вывод последовательности в консоль
 
 
-start_matrix = [[5, 8, 3], [4, '*', 2], [7, 6, 1]]
-target_matrix = [[1, 2, 3], [4, 5, 6], [7, 8, '*']]
-
-empty_x = 1
-empty_y = 1
-
-start = State(start_matrix, empty_x, empty_y)
-print('Матрица с начальным состоянием: ')
-print(start)
-# создали матрицу с целевым состоянием
-target = State(target_matrix, 2, 2)
-print('Матрица с конечным состоянием:')
-print(target)
-
-print(start.h2(target))
+info()
