@@ -73,8 +73,8 @@ class State:
             self.right()
         return actions
 
-    def check_goal(self, target_matrix):
-        return self.matrix == target_matrix
+    def check_goal(self, target):
+        return self.matrix == target.matrix
 
     def copy(self):
         new_matrix = [row.copy() for row in self.matrix]
@@ -108,6 +108,31 @@ class State:
     
         return sum(lengths)
 
+    def g(self, start):
+        item = 0
+        #positions = []
+        lengths = []
+        for i in range(3):
+            for j in range(3):
+                item = self.matrix[i][j]
+                position = start.find_item(item)
+                #positions.append(position)
+                lengths.append(abs(position[0] - i) + abs(position[1] - j))
+    
+        return sum(lengths)
+    
+    def f1(self, start, target):
+        h1 = self.h1(target)
+        g = self.g(start)
+
+        return g + h1
+
+    def f2(self, start, target):
+        h2 = self.h2(target)
+        g = self.g(start)
+
+        return g + h2
+
 
 class Node:
     def __init__(self, state, parent=None, depth=0, action=None): #тут поменяла значение глубины на 0
@@ -118,12 +143,13 @@ class Node:
 
 # Функция эвристического поиска
 
-def A(start, target_matrix):
+
+def A(start, target):
 
     start_node = Node(start, None, 0)
 
     # Если начальное состояние = конечное, то возвращаем его
-    if start_node.state.check_goal(target_matrix):
+    if start_node.state.check_goal(target):
         return start_node
 
     # Объявляем очередь из узлов
@@ -133,14 +159,14 @@ def A(start, target_matrix):
     step = 0
 
     # Считаем аддитивную оценочную стоимость
-    f = start_node.depth + start.h1(target_matrix)
+    f = start_node.depth + start.h1(target)
 
     print(f)
 
     node = a_queue[0]
 
     # Пока не дошли до конечного состояния или не прошли все возможные узлы
-    while len(a_queue) < 10:
+    while True:
         step += 1
         passed_state_matrixes.add(str(node.state.matrix))
 
@@ -158,32 +184,32 @@ def A(start, target_matrix):
 
             if move == 'u':
                 u_state = new_state.up()
-                u_node = Node(u_state, node, node.depth + 1, move)
-                f = u_node.depth + u_state.h1(target_matrix)
+                # u_node = Node(u_state, node, node.depth + 1, move)
+                f = u_state.f1(start, target)
                 lengths.append(f)
             else:
                 lengths.append(math.inf)
 
             if move == 'd':
                 d_state = new_state.down()
-                d_node = Node(d_state, node, node.depth + 1, move)
-                f = d_node.depth + d_state.h1(target_matrix)
+                # d_node = Node(d_state, node, node.depth + 1, move)
+                f = d_state.f1(start, target)
                 lengths.append(f)
             else:
                 lengths.append(math.inf)
 
             if move == 'r':
                 r_state = new_state.right()
-                r_node = Node(r_state, node, node.depth + 1, move)
-                f = r_node.depth + r_state.h1(target_matrix)
+                # r_node = Node(r_state, node, node.depth + 1, move)
+                f = r_state.f1(start, target)
                 lengths.append(f)
             else:
                 lengths.append(math.inf)
 
             if move == 'l':
                 l_state = new_state.left()
-                l_node = Node(l_state, node, node.depth + 1, move)
-                f = l_node.depth + l_state.h1(target_matrix)
+                # l_node = Node(l_state, node, node.depth + 1, move)
+                f = l_state.f1(start, target)
                 lengths.append(f)
             else:
                 lengths.append(math.inf)
@@ -216,7 +242,7 @@ def A(start, target_matrix):
 
             node = child_node
 
-            if new_state.check_goal(target_matrix): # является ли целевым
+            if new_state.check_goal(target): # является ли целевым
                 print("Целевое состояние достигнуто!")
                 print(f"Глубина {node.depth}")
                 return node
