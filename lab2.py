@@ -166,7 +166,7 @@ def A(start, target):
     node = a_queue[0]
 
     # Пока не дошли до конечного состояния или не прошли все возможные узлы
-    while True:
+    for _ in range(10):
         step += 1
         passed_state_matrixes.add(str(node.state.matrix))
 
@@ -177,75 +177,78 @@ def A(start, target):
         new_nodes = []
         repeated_nodes = []
         lengths = []
+        new_state = node.state.copy()
+        moves = node.state.sequence()
 
-        for move in node.state.sequence():
+        if 'u' in moves:
+            u_state = new_state.up()
+            # u_node = Node(u_state, node, node.depth + 1, move)
+            f = u_state.f1(start, target)
+            lengths.append(f)
+        else:
+            lengths.append(math.inf)
 
+        if 'd' in moves:
+            d_state = new_state.down()
+            # d_node = Node(d_state, node, node.depth + 1, move)
+            f = d_state.f1(start, target)
+            lengths.append(f)
+        else:
+            lengths.append(math.inf)
+
+        if 'r' in moves:
+            r_state = new_state.right()
+            # r_node = Node(r_state, node, node.depth + 1, move)
+            f = r_state.f1(start, target)
+            lengths.append(f)
+        else:
+            lengths.append(math.inf)
+
+        if 'l' in moves:
+            l_state = new_state.left()
+            # l_node = Node(l_state, node, node.depth + 1, move)
+            f = l_state.f1(start, target)
+            lengths.append(f)
+        else:
+            lengths.append(math.inf)
+        
+        print(*lengths)
+
+        if str(new_state.matrix) in passed_state_matrixes:
+            repeated_nodes.append(new_state)
             new_state = node.state.copy()
+            shortest = lengths.index(min(lengths))
 
-            if move == 'u':
-                u_state = new_state.up()
-                # u_node = Node(u_state, node, node.depth + 1, move)
-                f = u_state.f1(start, target)
-                lengths.append(f)
-            else:
-                lengths.append(math.inf)
+            if shortest == 0:
+                new_state.up()
+            elif shortest == 1:
+                new_state.down()
+            elif shortest == 2:
+                new_state.left()
+            elif shortest == 3:
+                new_state.right()
 
-            if move == 'd':
-                d_state = new_state.down()
-                # d_node = Node(d_state, node, node.depth + 1, move)
-                f = d_state.f1(start, target)
-                lengths.append(f)
-            else:
-                lengths.append(math.inf)
+            child_node = Node(new_state, node, node.depth + 1, move)
+            new_nodes.append(child_node)
+            a_queue.append(child_node)
+            passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
 
-            if move == 'r':
-                r_state = new_state.right()
-                # r_node = Node(r_state, node, node.depth + 1, move)
-                f = r_state.f1(start, target)
-                lengths.append(f)
-            else:
-                lengths.append(math.inf)
+        else:
+            # новый узел для нового состояния
+            child_node = Node(new_state, node, node.depth + 1, move)
+            new_nodes.append(child_node)
+            a_queue.append(child_node)
+            passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
 
-            if move == 'l':
-                l_state = new_state.left()
-                # l_node = Node(l_state, node, node.depth + 1, move)
-                f = l_state.f1(start, target)
-                lengths.append(f)
-            else:
-                lengths.append(math.inf)
+        node = child_node
 
-            if str(new_state.matrix) in passed_state_matrixes:
-                repeated_nodes.append(new_state)
-                new_state = node.state.copy()
-                shortest = lengths.index(min(lengths))
+        if new_state.check_goal(target): # является ли целевым
+            print("Целевое состояние достигнуто!")
+            print(f"Глубина {node.depth}")
+            return node
 
-                if shortest == 0:
-                    new_state.up()
-                elif shortest == 1:
-                    new_state.down()
-                elif shortest == 2:
-                    new_state.left()
-                elif shortest == 3:
-                    new_state.right()
+        lengths = [] #мы забывали очищать этот список
 
-                child_node = Node(new_state, node, node.depth + 1, move)
-                new_nodes.append(child_node)
-                a_queue.append(child_node)
-                passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
-
-            else:
-                # новый узел для нового состояния
-                child_node = Node(new_state, node, node.depth + 1, move)
-                new_nodes.append(child_node)
-                a_queue.append(child_node)
-                passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
-
-            node = child_node
-
-            if new_state.check_goal(target): # является ли целевым
-                print("Целевое состояние достигнуто!")
-                print(f"Глубина {node.depth}")
-                return node
     return None
 
 
