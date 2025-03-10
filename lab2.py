@@ -135,7 +135,7 @@ class State:
 
 
 class Node:
-    def __init__(self, state, parent=None, depth=0, action=None): #тут поменяла значение глубины на 0
+    def __init__(self, state, parent=None, depth=0, action=None): # тут поменяла значение глубины на 0
         self.depth = depth
         self.action = action
         self.parent = parent
@@ -166,7 +166,7 @@ def A(start, target):
     node = a_queue[0]
 
     # Пока не дошли до конечного состояния или не прошли все возможные узлы
-    while True:
+    for _ in range(50):
         step += 1
         passed_state_matrixes.add(str(node.state.matrix))
 
@@ -218,20 +218,26 @@ def A(start, target):
             repeated_nodes.append(new_state)
             new_state = node.state.copy()
             shortest = lengths.index(min(lengths))
+            lengths[shortest] = math.inf
+            shortest = lengths.index(min(lengths))
             move = ''
 
-            if shortest == 0:
+            if shortest == 0 and node.action != 'd':
                 new_state.up()
                 move = 'u'
-            elif shortest == 1:
+            elif shortest == 1 and node.action != 'u':
                 new_state.down()
                 move = 'd'
-            elif shortest == 2:
+            elif shortest == 2 and node.action != 'l':
                 new_state.left()
-                move = 'l'
-            elif shortest == 3:
-                new_state.right()
                 move = 'r'
+            elif shortest == 3 and node.action != 'r':
+                new_state.right()
+                move = 'l'
+            else:
+                print('тупик')
+                break
+
 
             child_node = Node(new_state, node, node.depth + 1, move)
             new_nodes.append(child_node)
