@@ -97,30 +97,30 @@ class State:
 
     def h2(self, target):
         item = 0
-        #positions = []
+        # positions = []
         lengths = []
         for i in range(3):
             for j in range(3):
                 item = self.matrix[i][j]
                 position = target.find_item(item)
-                #positions.append(position)
+                # positions.append(position)
                 lengths.append(abs(position[0] - i) + abs(position[1] - j))
     
         return sum(lengths)
 
     def g(self, start):
         item = 0
-        #positions = []
+        # positions = []
         lengths = []
         for i in range(3):
             for j in range(3):
                 item = self.matrix[i][j]
                 position = start.find_item(item)
-                #positions.append(position)
+                # positions.append(position)
                 lengths.append(abs(position[0] - i) + abs(position[1] - j))
-    
+
         return sum(lengths)
-    
+
     def f1(self, start, target):
         h1 = self.h1(target)
         g = self.g(start)
@@ -166,7 +166,7 @@ def A(start, target):
     node = a_queue[0]
 
     # Пока не дошли до конечного состояния или не прошли все возможные узлы
-    for _ in range(10):
+    while True:
         step += 1
         passed_state_matrixes.add(str(node.state.matrix))
 
@@ -180,7 +180,7 @@ def A(start, target):
         new_state = node.state.copy()
         moves = node.state.sequence()
 
-        if 'u' in moves:
+        if 'u' in moves and node.action != 'd':
             u_state = new_state.up()
             # u_node = Node(u_state, node, node.depth + 1, move)
             f = u_state.f1(start, target)
@@ -188,7 +188,7 @@ def A(start, target):
         else:
             lengths.append(math.inf)
 
-        if 'd' in moves:
+        if 'd' in moves and node.action != 'u':
             d_state = new_state.down()
             # d_node = Node(d_state, node, node.depth + 1, move)
             f = d_state.f1(start, target)
@@ -196,7 +196,7 @@ def A(start, target):
         else:
             lengths.append(math.inf)
 
-        if 'r' in moves:
+        if 'r' in moves and node.action != 'l':
             r_state = new_state.right()
             # r_node = Node(r_state, node, node.depth + 1, move)
             f = r_state.f1(start, target)
@@ -204,7 +204,7 @@ def A(start, target):
         else:
             lengths.append(math.inf)
 
-        if 'l' in moves:
+        if 'l' in moves and node.action != 'r':
             l_state = new_state.left()
             # l_node = Node(l_state, node, node.depth + 1, move)
             f = l_state.f1(start, target)
@@ -218,27 +218,32 @@ def A(start, target):
             repeated_nodes.append(new_state)
             new_state = node.state.copy()
             shortest = lengths.index(min(lengths))
+            move = ''
 
             if shortest == 0:
                 new_state.up()
+                move = 'u'
             elif shortest == 1:
                 new_state.down()
+                move = 'd'
             elif shortest == 2:
                 new_state.left()
+                move = 'l'
             elif shortest == 3:
                 new_state.right()
+                move = 'r'
 
             child_node = Node(new_state, node, node.depth + 1, move)
             new_nodes.append(child_node)
             a_queue.append(child_node)
-            passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
+            passed_state_matrixes.add(str(new_state.matrix)) # добавляем в пройденные
 
         else:
             # новый узел для нового состояния
             child_node = Node(new_state, node, node.depth + 1, move)
             new_nodes.append(child_node)
             a_queue.append(child_node)
-            passed_state_matrixes.add(str(new_state.matrix)) #добавляем в пройденные
+            passed_state_matrixes.add(str(new_state.matrix)) # добавляем в пройденные
 
         node = child_node
 
@@ -247,7 +252,7 @@ def A(start, target):
             print(f"Глубина {node.depth}")
             return node
 
-        lengths = [] #мы забывали очищать этот список
+        lengths = []  #мы забывали очищать этот список
 
     return None
 
