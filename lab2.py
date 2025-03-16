@@ -165,7 +165,7 @@ def A(start, target):
     print(f)
 
     node = a_queue[0]
-    f_new = 0
+    
     # Пока не дошли до конечного состояния или не прошли все возможные узлы
     for _ in range(50):
         step += 1
@@ -180,14 +180,14 @@ def A(start, target):
         lengths = []
         new_state = node.state.copy()
         moves = node.state.sequence()
-        f = f_new #родительское f для проверки на монотонность #какая-то хуйня надо разобраться 
+        f_parant = f #родительское f для проверки на монотонность #какая-то хуйня надо разобраться 
         
         if 'u' in moves and node.action != 'd':
             u_state = new_state.up()
             # u_node = Node(u_state, node, node.depth + 1, move)
-            f_new = u_state.h1(target) + node.depth + 1 #тут взяла h1 и прибавила глубину = g
+            f = u_state.h1(target) + node.depth + 1 #тут взяла h1 и прибавила глубину = g
             print(node.depth)
-            lengths.append(f_new)
+            lengths.append(f)
             print(u_state.h1(target))
         else:
             lengths.append(math.inf)
@@ -195,8 +195,8 @@ def A(start, target):
         if 'd' in moves and node.action != 'u':
             d_state = new_state.down()
             # d_node = Node(d_state, node, node.depth + 1, move)
-            f_new = d_state.h1(target) + node.depth + 1
-            lengths.append(f_new)
+            f = d_state.h1(target) + node.depth + 1
+            lengths.append(f)
             print(d_state.h1(target))
         else:
             lengths.append(math.inf)
@@ -204,8 +204,8 @@ def A(start, target):
         if 'r' in moves and node.action != 'l':
             r_state = new_state.right()
             # r_node = Node(r_state, node, node.depth + 1, move)
-            f_new = r_state.h1(target) + node.depth + 1
-            lengths.append(f_new)
+            f = r_state.h1(target) + node.depth + 1
+            lengths.append(f)
             print(r_state.h1(target))
         else:
             lengths.append(math.inf)
@@ -213,8 +213,8 @@ def A(start, target):
         if 'l' in moves and node.action != 'r':
             l_state = new_state.left()
             # l_node = Node(l_state, node, node.depth + 1, move)
-            f_new = l_state.h1(target) + node.depth + 1
-            lengths.append(f_new)
+            f = l_state.h1(target) + node.depth + 1
+            lengths.append(f)
             print(l_state.h1(target))
         else:
             lengths.append(math.inf)
@@ -227,7 +227,7 @@ def A(start, target):
             shortest_index = lengths.index(min(lengths))
             lengths[shortest_index] = math.inf
             shortest_index = lengths.index(min(lengths))
-            #f_new = max(f, min(lengths)) # проверка на монотонность походу тут не нужна поэтому закомментила
+            f = max(f_parant, min(lengths)) # проверка на монотонность походу тут не нужна поэтому закомментила
             move = ''
 
             if shortest_index == 0 and node.action != 'd':
@@ -258,7 +258,7 @@ def A(start, target):
             new_nodes.append(child_node)
             a_queue.append(child_node)
             passed_state_matrixes.add(str(new_state.matrix)) # добавляем в пройденные
-            f_new = max(f, min(lengths))
+            f = max(f_parant, min(lengths))
 
         node = child_node
 
