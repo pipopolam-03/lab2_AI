@@ -58,19 +58,20 @@ class State:
         return '\n'.join(result)
 
     def sequence(self):
+        temp_state = self.copy()
         actions = ''
-        if self.up():
+        if temp_state.up():
             actions += 'u'
-            self.down()
-        if self.down():
+            temp_state.down()
+        if temp_state.down():
             actions += 'd'
-            self.up()
-        if self.right():
+            temp_state.up()
+        if temp_state.right():
             actions += 'r'
-            self.left()
-        if self.left():
+            temp_state.left()
+        if temp_state.left():
             actions += 'l'
-            self.right()
+            temp_state.right()
         return actions
 
     def check_goal(self, target):
@@ -98,28 +99,28 @@ class State:
     def h2(self, target):
         item = 0
         # positions = []
-        lengths = []
+        f_values = []
         for i in range(3):
             for j in range(3):
                 item = self.matrix[i][j]
                 position = target.find_item(item)
                 # positions.append(position)
-                lengths.append(abs(position[0] - i) + abs(position[1] - j))
+                f_values.append(abs(position[0] - i) + abs(position[1] - j))
     
-        return sum(lengths)
+        return sum(f_values)
 # вроде как не правильно в качестве g возьму просто глубину узла
 #    def g(self, start):
 #        item = 0
 #        # positions = []
-#        lengths = []
+#        f_values = []
 #        for i in range(3):
 #            for j in range(3):
 #                item = self.matrix[i][j]
 #                position = start.find_item(item)
 #                # positions.append(position)
-#                lengths.append(abs(position[0] - i) + abs(position[1] - j))
+#                f_values.append(abs(position[0] - i) + abs(position[1] - j))
 #
-#        return sum(lengths)
+#        return sum(f_values)
     
 
 #    def f1(self, start, target):
@@ -165,7 +166,8 @@ def A(start, target):
     print(f)
 
     node = a_queue[0]
-    
+    repeated_nodes = [] # за цикл
+
     # Пока не дошли до конечного состояния или не прошли все возможные узлы
     for _ in range(50):
         step += 1
@@ -176,98 +178,100 @@ def A(start, target):
         print(node.state)
 
         new_nodes = []
-        repeated_nodes = []
-        lengths = []
+        f_values = []
         new_state = node.state.copy()
         moves = node.state.sequence()
-        f_parant = f #родительское f для проверки на монотонность #какая-то хуйня надо разобраться 
+        f_parent = f #родительское f для проверки на монотонность #какая-то хуйня надо разобраться 
+
+        # print(*moves)
         
         if 'u' in moves and node.action != 'd':
             u_state = new_state.up()
-            # u_node = Node(u_state, node, node.depth + 1, move)
+            new_state.down()  # возвращаем в исходное состояние
+            u_node = Node(u_state, node, node.depth + 1, 'u')
+            new_nodes.append(u_node) # записываем в очередь КАЖДЫЙ возможный ход
+            a_queue.append(u_node)
             f = u_state.h1(target) + node.depth + 1 #тут взяла h1 и прибавила глубину = g
             print(node.depth)
-            lengths.append(f)
+            f_values.append(f)
             print(u_state.h1(target))
         else:
-            lengths.append(math.inf)
+            f_values.append(math.inf)
 
         if 'd' in moves and node.action != 'u':
             d_state = new_state.down()
-            # d_node = Node(d_state, node, node.depth + 1, move)
+            new_state.up() # возвращаем в исходное состояние
+            d_node = Node(d_state, node, node.depth + 1, 'd')
+            new_nodes.append(d_node) # записываем в очередь КАЖДЫЙ возможный ход
+            a_queue.append(d_node)
             f = d_state.h1(target) + node.depth + 1
-            lengths.append(f)
+            f_values.append(f)
             print(d_state.h1(target))
         else:
-            lengths.append(math.inf)
+            f_values.append(math.inf)
 
         if 'r' in moves and node.action != 'l':
             r_state = new_state.right()
-            # r_node = Node(r_state, node, node.depth + 1, move)
+            new_state.left() # возвращаем в исходное состояние
+            r_node = Node(r_state, node, node.depth + 1, 'r')
+            new_nodes.append(r_node) # записываем в очередь КАЖДЫЙ возможный ход
+            a_queue.append(r_node)
             f = r_state.h1(target) + node.depth + 1
-            lengths.append(f)
+            f_values.append(f)
             print(r_state.h1(target))
         else:
-            lengths.append(math.inf)
+            f_values.append(math.inf)
 
         if 'l' in moves and node.action != 'r':
             l_state = new_state.left()
-            # l_node = Node(l_state, node, node.depth + 1, move)
+            new_state.right() # возвращаем в исходное состояние
+            l_node = Node(l_state, node, node.depth + 1, 'l')
+            new_nodes.append(l_node) # записываем в очередь КАЖДЫЙ возможный ход
+            a_queue.append(l_node)
             f = l_state.h1(target) + node.depth + 1
-            lengths.append(f)
+            f_values.append(f)
             print(l_state.h1(target))
         else:
-            lengths.append(math.inf)
-        
-        print(*lengths)
+            f_values.append(math.inf)
 
-        if str(new_state.matrix) in passed_state_matrixes: #добавила not
-            repeated_nodes.append(new_state)
-            new_state = node.state.copy()
-            shortest_index = lengths.index(min(lengths))
-            lengths[shortest_index] = math.inf
-            shortest_index = lengths.index(min(lengths))
-            f = max(f_parant, min(lengths)) # проверка на монотонность походу тут не нужна поэтому закомментила
-            move = ''
+        print(*f_values)
 
-            if shortest_index == 0 and node.action != 'd':
-                new_state.up()
-                move = 'u'
-            elif shortest_index == 1 and node.action != 'u':
-                new_state.down()
-                move = 'd'
-            elif shortest_index == 2 and node.action != 'l':
-                new_state.left()
-                move = 'r'
-            elif shortest_index == 3 and node.action != 'r':
-                new_state.right()
-                move = 'l'
-            else:
-                print('тупик')
-                break
-
-            child_node = Node(new_state, node, node.depth + 1, move)
-            new_nodes.append(child_node)
-            a_queue.append(child_node)
-            passed_state_matrixes.add(str(new_state.matrix)) # добавляем в пройденные
-
+        if node in repeated_nodes:
+            print(new_state.matrix)
+            node = a_queue[a_queue.index(node) + 1]  # мб будет работать если это починить
+            print(node.state.matrix)
         else:
-            # новый узел для нового состояния
-            
-            child_node = Node(new_state, node, node.depth + 1, move)
-            new_nodes.append(child_node)
-            a_queue.append(child_node)
-            passed_state_matrixes.add(str(new_state.matrix)) # добавляем в пройденные
-            f = max(f_parant, min(lengths))
+            min_f = max(f_parent, min(f_values))
 
-        node = child_node
+            if f_values.index(min_f) == 0 and node.action != 'd':
+                    new_state.up()
+                    move = 'u'
+            elif f_values.index(min_f) == 1 and node.action != 'u':
+                    new_state.down()
+                    move = 'd'
+            elif f_values.index(min_f) == 3 and node.action != 'r':
+                    new_state.left()
+                    move = 'l'
+            elif f_values.index(min_f) == 2 and node.action != 'l':
+                    new_state.right()
+                    move = 'r'
+
+            child_node = Node(new_state, node, node.depth + 1, move)
+            # new_nodes.append(child_node)
+            # a_queue.append(child_node)
+            passed_state_matrixes.add(str(new_state.matrix)) # добавляем в пройденные
+
+            node = child_node
+
+            print(child_node.action)
 
         if new_state.check_goal(target): # является ли целевым
             print("Целевое состояние достигнуто!")
             print(f"Глубина {node.depth}")
             return node
 
-        lengths = []  #мы забывали очищать этот список
+        repeated_nodes.append(node)
+        f_values = []  # мы забывали очищать этот список
 
     return None
 
@@ -287,7 +291,7 @@ def info():
     target = State(target_matrix, 2, 2)
     print('Матрица с конечным состоянием:')
     print(target)
-        
+   
     result = A(start, target)
 
     if result:
