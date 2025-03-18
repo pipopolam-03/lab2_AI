@@ -15,35 +15,39 @@ class State:
 
     #  перемещаем пустоту слева направо
     def left(self):
-        if self.empty_one_y > 0:
-            self.matrix[self.empty_one_x][self.empty_one_y], self.matrix[self.empty_one_x][self.empty_one_y - 1] \
-                = self.matrix[self.empty_one_x][self.empty_one_y - 1], self.matrix[self.empty_one_x][self.empty_one_y]
-            self.empty_one_y -= 1
-            return self
+        left_state = self.copy()
+        if left_state.empty_one_y > 0:
+            left_state.matrix[left_state.empty_one_x][left_state.empty_one_y], left_state.matrix[left_state.empty_one_x][left_state.empty_one_y - 1] \
+                = left_state.matrix[left_state.empty_one_x][left_state.empty_one_y - 1], left_state.matrix[left_state.empty_one_x][left_state.empty_one_y]
+            left_state.empty_one_y -= 1
+            return left_state
 
     #  перемещаем пустоту справа налево
     def right(self):
-        if self.empty_one_y < 2:
-            self.matrix[self.empty_one_x][self.empty_one_y], self.matrix[self.empty_one_x][self.empty_one_y + 1] \
-                = self.matrix[self.empty_one_x][self.empty_one_y + 1], self.matrix[self.empty_one_x][self.empty_one_y]
-            self.empty_one_y += 1
-            return self
+        right_state = self.copy()
+        if right_state.empty_one_y < 2:
+            right_state.matrix[right_state.empty_one_x][right_state.empty_one_y], right_state.matrix[right_state.empty_one_x][right_state.empty_one_y + 1] \
+                = right_state.matrix[right_state.empty_one_x][right_state.empty_one_y + 1], right_state.matrix[right_state.empty_one_x][right_state.empty_one_y]
+            right_state.empty_one_y += 1
+            return right_state
 
     #  перемещselfаем пустоту сверху вниз
     def down(self):
-        if self.empty_one_x < 2:
-            self.matrix[self.empty_one_x][self.empty_one_y], self.matrix[self.empty_one_x + 1][self.empty_one_y] \
-                = self.matrix[self.empty_one_x + 1][self.empty_one_y], self.matrix[self.empty_one_x][self.empty_one_y]
-            self.empty_one_x += 1
-            return self
+        down_state = self.copy()
+        if down_state.empty_one_x < 2:
+            down_state.matrix[down_state.empty_one_x][down_state.empty_one_y], down_state.matrix[down_state.empty_one_x + 1][down_state.empty_one_y] \
+                = down_state.matrix[down_state.empty_one_x + 1][down_state.empty_one_y], down_state.matrix[down_state.empty_one_x][down_state.empty_one_y]
+            down_state.empty_one_x += 1
+            return down_state
 
     #  перемещаем пустоту снизу вверх
     def up(self):
-        if self.empty_one_x > 0:
-            self.matrix[self.empty_one_x][self.empty_one_y], self.matrix[self.empty_one_x - 1][self.empty_one_y] \
-                = self.matrix[self.empty_one_x - 1][self.empty_one_y], self.matrix[self.empty_one_x][self.empty_one_y]
-            self.empty_one_x -= 1
-            return self
+        up_state = self.copy()
+        if up_state.empty_one_x > 0:
+            up_state.matrix[up_state.empty_one_x][up_state.empty_one_y], up_state.matrix[up_state.empty_one_x - 1][up_state.empty_one_y] \
+                = up_state.matrix[up_state.empty_one_x - 1][up_state.empty_one_y], up_state.matrix[up_state.empty_one_x][up_state.empty_one_y]
+            up_state.empty_one_x -= 1
+            return up_state
 
     # вот эта шняга теперь просто возвращает строку, а не печатает, чтобы можно было в файл записать
     def __str__(self):
@@ -238,10 +242,11 @@ def A(start, target):
 
         if node in repeated_nodes:
             print(new_state.matrix)
-            node = a_queue[a_queue.index(node) + 1]  # мб будет работать если это починить
+            node = a_queue[-1]  # мб будет работать если это починить
             print(node.state.matrix)
         else:
-            min_f = max(f_parent, min(f_values))
+            # min_f = max(f_parent, min(f_values))
+            min_f = min(f_values)
 
             if f_values.index(min_f) == 0 and node.action != 'd':
                     new_state.up()
@@ -272,6 +277,8 @@ def A(start, target):
 
         repeated_nodes.append(node)
         f_values = []  # мы забывали очищать этот список
+
+        print(*a_queue)
 
     return None
 
