@@ -192,49 +192,53 @@ def A(start, target):
         if 'u' in moves and node.action != 'd':
             u_state = new_state.up()
             new_state.down()  # возвращаем в исходное состояние
-            u_node = Node(u_state, node, node.depth + 1, 'u')
-            new_nodes.append(u_node) # записываем в очередь КАЖДЫЙ возможный ход
-            a_queue.append(u_node)
-            f = u_state.h1(target) + node.depth + 1 #тут взяла h1 и прибавила глубину = g
-            print(node.depth)
-            f_values.append(f)
-            print(u_state.h1(target))
+            if str(u_state.matrix) not in passed_state_matrixes:                
+                u_node = Node(u_state, node, node.depth + 1, 'u')
+                new_nodes.append(u_node) # записываем в очередь КАЖДЫЙ возможный ход
+                a_queue.append(u_node)
+                f = u_state.h1(target) + node.depth + 1 #тут взяла h1 и прибавила глубину = g
+                print(node.depth)
+                f_values.append(f)
+                print(u_state.h1(target))
         else:
             f_values.append(math.inf)
 
         if 'd' in moves and node.action != 'u':
             d_state = new_state.down()
             new_state.up() # возвращаем в исходное состояние
-            d_node = Node(d_state, node, node.depth + 1, 'd')
-            new_nodes.append(d_node) # записываем в очередь КАЖДЫЙ возможный ход
-            a_queue.append(d_node)
-            f = d_state.h1(target) + node.depth + 1
-            f_values.append(f)
-            print(d_state.h1(target))
+            if str(d_state.matrix) not in passed_state_matrixes:                
+                d_node = Node(d_state, node, node.depth + 1, 'd')
+                new_nodes.append(d_node) # записываем в очередь КАЖДЫЙ возможный ход
+                a_queue.append(d_node)
+                f = d_state.h1(target) + node.depth + 1
+                f_values.append(f)
+                print(d_state.h1(target))
         else:
             f_values.append(math.inf)
 
         if 'r' in moves and node.action != 'l':
             r_state = new_state.right()
             new_state.left() # возвращаем в исходное состояние
-            r_node = Node(r_state, node, node.depth + 1, 'r')
-            new_nodes.append(r_node) # записываем в очередь КАЖДЫЙ возможный ход
-            a_queue.append(r_node)
-            f = r_state.h1(target) + node.depth + 1
-            f_values.append(f)
-            print(r_state.h1(target))
+            if str(r_state.matrix) not in passed_state_matrixes:                
+                r_node = Node(r_state, node, node.depth + 1, 'r')
+                new_nodes.append(r_node) # записываем в очередь КАЖДЫЙ возможный ход
+                a_queue.append(r_node)
+                f = r_state.h1(target) + node.depth + 1
+                f_values.append(f)
+                print(r_state.h1(target))
         else:
             f_values.append(math.inf)
 
         if 'l' in moves and node.action != 'r':
             l_state = new_state.left()
             new_state.right() # возвращаем в исходное состояние
-            l_node = Node(l_state, node, node.depth + 1, 'l')
-            new_nodes.append(l_node) # записываем в очередь КАЖДЫЙ возможный ход
-            a_queue.append(l_node)
-            f = l_state.h1(target) + node.depth + 1
-            f_values.append(f)
-            print(l_state.h1(target))
+            if str(l_state.matrix) not in passed_state_matrixes:
+                l_node = Node(l_state, node, node.depth + 1, 'l')
+                new_nodes.append(l_node) # записываем в очередь КАЖДЫЙ возможный ход
+                a_queue.append(l_node)
+                f = l_state.h1(target) + node.depth + 1
+                f_values.append(f)
+                print(l_state.h1(target))
         else:
             f_values.append(math.inf)
 
@@ -278,7 +282,7 @@ def A(start, target):
         repeated_nodes.append(node)
         f_values = []  # мы забывали очищать этот список
 
-        print(*a_queue)
+        #print(*a_queue)
 
     return None
 
