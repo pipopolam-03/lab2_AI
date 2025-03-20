@@ -1,5 +1,6 @@
 from heapq import heappop, heappush
 import numpy as np
+import os
 
 class State:
     def __init__(self, matrix, empty_one_x, empty_one_y):
@@ -49,7 +50,7 @@ class State:
             right_state.empty_one_y += 1
             return right_state
 
-    #  перемещselfаем пустоту сверху вниз
+    #  перемещаем пустоту сверху вниз
     def down(self):
         down_state = self.copy()
         if down_state.empty_one_x < 2:
@@ -89,7 +90,7 @@ class State:
                 if item == self.matrix[i][j]:
                     return (i, j)
         return False
-
+    # возвращаем список состояний, полученных в результате возможных ходов
     def get_neighbors(self):
         neighbors = []
         for move in [self.up(), self.down(), self.left(), self.right()]:
@@ -107,7 +108,7 @@ class State:
                     count += 1
         return count
 
-    # функция h1 из методички (сумма расстояний от каждого элемента в self до его положения в целевой матрице)
+    # функция h2 из методички (сумма расстояний от каждого элемента в self до его положения в целевой матрице)
     def h2(self, target):
         distance = 0
         target_positions = {}  
@@ -175,6 +176,12 @@ class Node:
 # Эвристический поиск
 
 def a1(start, target):
+    # Запрос режима от пользователя
+    step_mode = input("Выберите режим (auto/step): ").strip().lower()
+
+    if step_mode not in ['auto', 'step']:
+        print("Неверный выбор, устанавливается режим 'auto'.")
+        step_mode = 'auto'
 
     start_node = Node(start, None, 0)
 
@@ -184,7 +191,7 @@ def a1(start, target):
     # На всякий выводим инфу о корне
     start_node.about_node()
 
-    queue = {} # из куеуе
+    queue = {}  # из куеуе
     passed = {}
 
     # Если начальное состояние = конечное, то возвращаем его
@@ -196,23 +203,41 @@ def a1(start, target):
     # сразу обзываем узел на текущем шаге current
     current_node = start_node.copy()
 
+    # Открываем файл для записи в автоматическом режиме
+    if step_mode == 'auto':
+        log_file = open("a1.txt", "w")
+        log_file.write("Автоматический режим:\n")
+
     while True:
         step += 1
 
         # если текущее состояние = целевое - возвращаем его
         if current_node.state.check_goal(target):
+            if step_mode == 'auto':
+                log_file.write(f"\nШаг {step}: Найдено целевое состояние!\n")
+                log_file.close()
+            print("Поиск завершен. Информация записана в файл a1.txt.") if step_mode == 'auto' else None
             return current_node
 
         # если попали в узел, где уже были, берем следующий по приоритету (с минимальным f) из куеуе
         if current_node.is_there_siblings(queue):
-            print('Я дубликат')
+            if step_mode == 'step':
+                print('Я дубликат')
             current_node = min(queue, key=queue.get).copy()
-            print("Замена мне: ")
-            current_node.about_node()
+            if step_mode == 'step':
+                print("Замена мне: ")
+                current_node.about_node()
 
-        print(f"\n--- Шаг {step} ---")
-        print(f"Текущая вершина для раскрытия (глубина {current_node.depth}):")
-        print(current_node.state)
+        # Выводим информацию о шаге в консоль, если выбран пошаговый режим
+        if step_mode == 'step':
+            print(f"\n--- Шаг {step} ---")
+            print(f"Текущая вершина для раскрытия (глубина {current_node.depth}):")
+            print(current_node.state)
+
+        # если выбран автоматический режим, записываем в файл
+        if step_mode == 'auto':
+            log_file.write(f"\nШаг {step} - Текущая вершина: {current_node.state}\n")
+            log_file.write(f"Глубина: {current_node.depth}\n")
 
         # словарь для значений f. Вид - {узел Node : значение f его состояния}
         f_values = {}
@@ -224,39 +249,61 @@ def a1(start, target):
             up_state = current_node.state.up()
             up_node = Node(up_state, current_node, current_node.depth + 1, 'u')
 
-            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем
             # ли в пройденное состояние, если пойдет по этому пути
             if str(up_state.matrix) not in passed and up_node.state.matrix != current_node.parent.state.matrix:
                 f_values[up_node] = up_node.depth + up_state.h1(target)
+
+            if step_mode == 'step':
+                print(f"Значение f для хода вверх: {up_node.depth + up_state.h1(target)}")
+
+            if step_mode == 'auto':
+                log_file.write(f"Значение f для хода вверх: {up_node.depth + up_state.h1(target)}\n")
 
         if 'd' in moves:
             down_state = current_node.state.down()
             down_node = Node(down_state, current_node, current_node.depth + 1, 'd')
 
-            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем
             # ли в пройденное состояние, если пойдет по этому пути
-            if str(down_state.matrix) not in passed  and down_node.state.matrix != current_node.parent.state.matrix:
+            if str(down_state.matrix) not in passed and down_node.state.matrix != current_node.parent.state.matrix:
                 f_values[down_node] = down_node.depth + down_state.h1(target)
+
+            if step_mode == 'step':
+                print(f"Значение f для хода вниз: {down_node.depth + down_state.h1(target)}")
+
+            if step_mode == 'auto':
+                log_file.write(f"Значение f для хода вниз: {down_node.depth + down_state.h1(target)}\n")
 
         if 'r' in moves:
             right_state = current_node.state.right()
             right_node = Node(right_state, current_node, current_node.depth + 1, 'r')
 
-            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем
             # ли в пройденное состояние, если пойдет по этому пути
             if str(right_state.matrix) not in passed and right_node.state.matrix != current_node.parent.state.matrix:
                 f_values[right_node] = right_node.depth + right_state.h1(target)
 
+            if step_mode == 'step':
+                print(f"Значение f для хода вправо: {right_node.depth + right_state.h1(target)}")
 
+            if step_mode == 'auto':
+                log_file.write(f"Значение f для хода вправо: {right_node.depth + right_state.h1(target)}\n")
 
         if 'l' in moves:
             left_state = current_node.state.left()
             left_node = Node(left_state, current_node, current_node.depth + 1, 'l')
 
-            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем
             # ли в пройденное состояние, если пойдет по этому пути
             if str(left_state.matrix) not in passed and left_node.state.matrix != current_node.parent.state.matrix:
                 f_values[left_node] = left_node.depth + left_state.h1(target)
+
+            if step_mode == 'step':
+                print(f"Значение f для хода влево: {left_node.depth + left_state.h1(target)}")
+
+            if step_mode == 'auto':
+                log_file.write(f"Значение f для хода влево: {left_node.depth + left_state.h1(target)}\n")
 
         # в passed по ключу current_node записываем его значение f
         passed[current_node] = current_node.depth + current_node.state.h1(target)
@@ -276,33 +323,71 @@ def a1(start, target):
         # ура, current_node становится new_node
         current_node = new_node.copy()
 
+        # Если пошаговый режим, ожидаем команды от пользователя для продолжения
+        if step_mode == 'step':
+            input("Нажмите Enter для продолжения...")
 
 def a2(start, target):
+    # Запрос у пользователя выбора режима
+    mode = input("Выберите режим (1 - автоматический, 2 - пошаговый): ").strip()
+
+    if mode == "1":
+        mode = "automatic"
+    elif mode == "2":
+        mode = "step_by_step"
+    else:
+        print("Некорректный выбор. Выбираем автоматический режим по умолчанию.")
+        mode = "automatic"
+
     preoritet_queue = [(start.h2(target), 1, start, [])]
     passed = set()
-    
-    while preoritet_queue:
-        h2, depth, current, path = heappop(preoritet_queue)
-        
-        if current in passed:
-            continue
 
-        passed.add(current)
-        
-        print(f"Глубина {len(path)}:\n{current}\n\n")
-        
-        if current.check_goal(target):
-            print("Решение\n")
-            step = 1
-            for matrix in path + [current]:
-                print('Шаг', step)
-                print(matrix)
-                step += 1
-            return None
-        
-        for neighbor in current.get_neighbors():
-            if neighbor not in passed:
-                heappush(preoritet_queue, (depth + neighbor.h2(target), depth + 1, neighbor, path + [current]))
+    if mode == "automatic":
+        # В автоматическом режиме записываем результат в файл
+        with open("solution.txt", "w") as f:
+            while preoritet_queue:
+                h2, depth, current, path = heappop(preoritet_queue)
+
+                if current in passed:
+                    continue
+
+                passed.add(current)
+
+                if current.check_goal(target):
+                    f.write("Решение:\n")
+                    for matrix in path + [current]:
+                        f.write(str(matrix) + "\n")
+                    print("Решение записано в файл 'solution.txt'.")
+                    return None
+
+                for neighbor in current.get_neighbors():
+                    if neighbor not in passed:
+                        heappush(preoritet_queue, (depth + neighbor.h2(target), depth + 1, neighbor, path + [current]))
+
+    elif mode == "step_by_step":
+        # В пошаговом режиме выводим в консоль, но без строки с глубиной
+        while preoritet_queue:
+            h2, depth, current, path = heappop(preoritet_queue)
+
+            if current in passed:
+                continue
+
+            passed.add(current)
+
+            if current.check_goal(target):
+                print("Решение:")
+                step = 1
+                for matrix in path + [current]:
+                    print(f"Шаг {step}")
+                    print(matrix)
+                    step += 1
+                    input("Нажмите Enter для следующего шага...")  # Ждем нажатия Enter
+                return None
+
+            for neighbor in current.get_neighbors():
+                if neighbor not in passed:
+                    heappush(preoritet_queue, (depth + neighbor.h2(target), depth + 1, neighbor, path + [current]))
+
 
 def info():
 
