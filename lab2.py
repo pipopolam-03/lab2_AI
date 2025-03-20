@@ -1,4 +1,5 @@
-import math
+from heapq import heappop, heappush
+import numpy as np
 
 class State:
     def __init__(self, matrix, empty_one_x, empty_one_y):
@@ -89,6 +90,14 @@ class State:
                     return (i, j)
         return False
 
+    def get_neighbors(self):
+        neighbors = []
+        for move in [self.up(), self.down(), self.left(), self.right()]:
+            if move:
+                neighbors.append(move)
+        return neighbors
+    
+
     # функция h1 из методички (количество элементов не на своем месте)
     def h1(self, target):
         count = 0
@@ -100,16 +109,30 @@ class State:
 
     # функция h1 из методички (сумма расстояний от каждого элемента в self до его положения в целевой матрице)
     def h2(self, target):
-        f_values = []
+        distance = 0
+        target_positions = {}  
+        for i in range(3):  
+            for j in range(3):  
+                target_positions[target.matrix[i][j]] = (i, j)
         for i in range(3):
             for j in range(3):
-                item = self.matrix[i][j]
-                position = target.find_item(item)
-                if position:  
-                    f_values.append(abs(position[0] - i) + abs(position[1] - j))
+                x, y = target_positions[self.matrix[i][j]]
+                distance += abs(x - i) + abs(y - j)
 
-        return sum(f_values)
+        return distance
 
+    # логика для heapq
+    def __lt__(self, other):
+        return False
+    
+    def __eq__(self, other):
+        return isinstance(other, State) and self.matrix == other.matrix
+    
+    def __hash__(self):
+        return hash(str(self.matrix))
+    
+    def __repr__(self):
+        return str(np.array(self.matrix))
 
 class Node:
     def __init__(self, state, parent=None, depth=0, action=None): # тут поменяла значение глубины на 0
@@ -151,7 +174,7 @@ class Node:
 
 # Эвристический поиск
 
-def A(start, target, h): #h = True - h1, иначе h2
+def a1(start, target):
 
     start_node = Node(start, None, 0)
 
@@ -204,10 +227,7 @@ def A(start, target, h): #h = True - h1, иначе h2
             # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
             # ли в пройденное состояние, если пойдет по этому пути
             if str(up_state.matrix) not in passed and up_node.state.matrix != current_node.parent.state.matrix:
-                if h == True:
-                    f_values[up_node] = up_node.depth + up_state.h1(target)
-                if h == False:
-                    f_values[up_node] = up_node.depth + up_state.h2(target)
+                f_values[up_node] = up_node.depth + up_state.h1(target)
 
         if 'd' in moves:
             down_state = current_node.state.down()
@@ -216,10 +236,7 @@ def A(start, target, h): #h = True - h1, иначе h2
             # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
             # ли в пройденное состояние, если пойдет по этому пути
             if str(down_state.matrix) not in passed  and down_node.state.matrix != current_node.parent.state.matrix:
-                if h == True:
-                    f_values[down_node] = down_node.depth + down_state.h1(target)
-                if h == False:
-                    f_values[down_node] = down_node.depth + down_state.h2(target)
+                f_values[down_node] = down_node.depth + down_state.h1(target)
 
         if 'r' in moves:
             right_state = current_node.state.right()
@@ -228,10 +245,8 @@ def A(start, target, h): #h = True - h1, иначе h2
             # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
             # ли в пройденное состояние, если пойдет по этому пути
             if str(right_state.matrix) not in passed and right_node.state.matrix != current_node.parent.state.matrix:
-                if h == True:
-                    f_values[right_node] = right_node.depth + right_state.h1(target)
-                elif h == False:
-                    f_values[right_node] = right_node.depth + right_state.h2(target)
+                f_values[right_node] = right_node.depth + right_state.h1(target)
+
 
 
         if 'l' in moves:
@@ -241,16 +256,10 @@ def A(start, target, h): #h = True - h1, иначе h2
             # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
             # ли в пройденное состояние, если пойдет по этому пути
             if str(left_state.matrix) not in passed and left_node.state.matrix != current_node.parent.state.matrix:
-                if h == True:
-                    f_values[left_node] = left_node.depth + left_state.h1(target)
-                if h == False:
-                    f_values[left_node] = left_node.depth + left_state.h2(target)
+                f_values[left_node] = left_node.depth + left_state.h1(target)
 
         # в passed по ключу current_node записываем его значение f
-        if h == True:
-            passed[current_node] = current_node.depth + current_node.state.h1(target)
-        if h == False:
-            passed[current_node] = current_node.depth + current_node.state.h2(target)
+        passed[current_node] = current_node.depth + current_node.state.h1(target)
 
         # new_node по приколу копия, в нее записываем приоритетный узел с минимальным f
         new_node = min(f_values, key=f_values.get)
@@ -268,6 +277,33 @@ def A(start, target, h): #h = True - h1, иначе h2
         current_node = new_node.copy()
 
 
+def a2(start, target):
+    preoritet_queue = [(start.h2(target), 1, start, [])]
+    passed = set()
+    
+    while preoritet_queue:
+        h2, depth, current, path = heappop(preoritet_queue)
+        
+        if current in passed:
+            continue
+
+        passed.add(current)
+        
+        print(f"Глубина {len(path)}:\n{current}\n\n")
+        
+        if current.check_goal(target):
+            print("Решение\n")
+            step = 1
+            for matrix in path + [current]:
+                print('Шаг', step)
+                print(matrix)
+                step += 1
+            return None
+        
+        for neighbor in current.get_neighbors():
+            if neighbor not in passed:
+                heappush(preoritet_queue, (depth + neighbor.h2(target), depth + 1, neighbor, path + [current]))
+
 def info():
 
     start_matrix = [[5, 8, 3], [4, '*', 2], [7, 6, 1]]
@@ -284,14 +320,15 @@ def info():
     target = State(target_matrix, 2, 2)
     print('Матрица с конечным состоянием:')
     print(target)
+    print(start.h2(target))
     choice = 0
     while choice != 3:
         print('Вы хотите обход:\n   1. h1\n   2. h2\n   3. Выход\n')
         choice = int(input())
         if choice == 1:
-            A(start, target, True)
+            a1(start, target)
         elif choice == 2:
-            A(start, target, False)
+            a2(start, target)
         elif choice == 3:
             print('Выход')
         else:
