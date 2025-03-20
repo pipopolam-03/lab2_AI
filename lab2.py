@@ -247,7 +247,6 @@ def a1(start, target):
             print(f"Пройденные состояния: {len(passed)}")
             print(f"Текущее f-значение: {current_node.depth + current_node.state.h1(target)}")
             print(f"Текущее h1-значение: {current_node.state.h1(target)}")
-            print(f"Матрица текущего состояния:\n{current_node.state.matrix}")
 
         # если выбран автоматический режим, записываем в файл
         if step_mode == 'auto':
