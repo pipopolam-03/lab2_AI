@@ -1,6 +1,8 @@
 from heapq import heappop, heappush
 import numpy as np
 import os
+import time
+import psutil
 
 class State:
     def __init__(self, matrix, empty_one_x, empty_one_y):
@@ -183,6 +185,10 @@ def a1(start, target):
         print("Неверный выбор, устанавливается режим 'auto'.")
         step_mode = 'auto'
 
+    start_time = time.time()  # Засекаем время
+    process = psutil.Process(os.getpid())  # Получаем текущий процесс
+    memory_before = process.memory_info().rss  # Используемая память до начала
+
     start_node = Node(start, None, 0)
 
     # это костыль чтобы не ломалось условие на строке 195, убирать нельзя
@@ -213,10 +219,14 @@ def a1(start, target):
 
         # если текущее состояние = целевое - возвращаем его
         if current_node.state.check_goal(target):
+            end_time = time.time()  # Засекаем время завершения
+            memory_after = process.memory_info().rss  # Потребленная память
             if step_mode == 'auto':
                 log_file.write(f"\nШаг {step}: Найдено целевое состояние!\n")
                 log_file.close()
             print("Поиск завершен. Информация записана в файл a1.txt.") if step_mode == 'auto' else None
+            print(f"Время выполнения: {end_time - start_time:.4f} секунд")
+            print(f"Используемая память: {memory_after - memory_before} байт")
             return current_node
 
         # если попали в узел, где уже были, берем следующий по приоритету (с минимальным f) из куеуе
@@ -233,6 +243,11 @@ def a1(start, target):
             print(f"\n--- Шаг {step} ---")
             print(f"Текущая вершина для раскрытия (глубина {current_node.depth}):")
             print(current_node.state)
+            print(f"Размер очереди: {len(queue)}")
+            print(f"Пройденные состояния: {len(passed)}")
+            print(f"Текущее f-значение: {current_node.depth + current_node.state.h1(target)}")
+            print(f"Текущее h1-значение: {current_node.state.h1(target)}")
+            print(f"Матрица текущего состояния:\n{current_node.state.matrix}")
 
         # если выбран автоматический режим, записываем в файл
         if step_mode == 'auto':
@@ -329,22 +344,22 @@ def a1(start, target):
 
 def a2(start, target):
     # Запрос у пользователя выбора режима
-    mode = input("Выберите режим (1 - автоматический, 2 - пошаговый): ").strip()
+    step_mode = input("Выберите режим (auto/step): ").strip().lower()
 
-    if mode == "1":
-        mode = "automatic"
-    elif mode == "2":
-        mode = "step_by_step"
-    else:
-        print("Некорректный выбор. Выбираем автоматический режим по умолчанию.")
-        mode = "automatic"
+    if step_mode not in ['auto', 'step']:
+        print("Неверный выбор, устанавливается режим 'auto'.")
+        step_mode = 'auto'
+
 
     preoritet_queue = [(start.h2(target), 1, start, [])]
     passed = set()
 
-    if mode == "automatic":
+    if step_mode == "auto":
+        start_time = time.time()  # Засекаем время
+        process = psutil.Process(os.getpid())  # Получаем текущий процесс
+        memory_before = process.memory_info().rss  # Используемая память до начала
         # В автоматическом режиме записываем результат в файл
-        with open("solution.txt", "w") as f:
+        with open("a2.txt", "w") as f:
             while preoritet_queue:
                 h2, depth, current, path = heappop(preoritet_queue)
 
@@ -354,17 +369,20 @@ def a2(start, target):
                 passed.add(current)
 
                 if current.check_goal(target):
+                    end_time = time.time()  # Засекаем время завершения
+                    memory_after = process.memory_info().rss  # Потребленная память
                     f.write("Решение:\n")
                     for matrix in path + [current]:
                         f.write(str(matrix) + "\n")
-                    print("Решение записано в файл 'solution.txt'.")
+                    print("Решение записано в файл 'a2.txt'.")
+                    print(f"Время выполнения: {end_time - start_time:.4f} секунд")
+                    print(f"Максимальное использование памяти: {memory_after - memory_before} KB")
                     return None
 
                 for neighbor in current.get_neighbors():
                     if neighbor not in passed:
                         heappush(preoritet_queue, (depth + neighbor.h2(target), depth + 1, neighbor, path + [current]))
-
-    elif mode == "step_by_step":
+    elif step_mode == "step":
         # В пошаговом режиме выводим в консоль, но без строки с глубиной
         while preoritet_queue:
             h2, depth, current, path = heappop(preoritet_queue)
@@ -378,8 +396,12 @@ def a2(start, target):
                 print("Решение:")
                 step = 1
                 for matrix in path + [current]:
+                    # Здесь выводим параметры решения
                     print(f"Шаг {step}")
-                    print(matrix)
+                    print(matrix)  # Здесь нужно вывести состояние (например, матрицу)
+                    print(f"Глубина текущего узла: {depth}")  # Глубина текущего узла
+                    print(f"Размер очереди: {len(preoritet_queue)}")  # Размер очереди
+                    print(f"Пройденные состояния: {len(passed)}")  # Количество пройденных состояний
                     step += 1
                     input("Нажмите Enter для следующего шага...")  # Ждем нажатия Enter
                 return None
