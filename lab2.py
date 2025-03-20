@@ -71,7 +71,6 @@ class State:
             return up_state
 
     # проверяем, куда можем пойти на текущем шаге
-    # тут я сделала копию и возвращается тоже копия, чтобы не менялось состояние self, а то опасненько
     def sequence(self):
         temp_state = self.copy()
         actions = ''
@@ -124,27 +123,30 @@ class State:
 
         return distance
 
-    # логика для heapq
-    def __lt__(self, other):
+    # логика для работы с heapq
+    def __lt__(self, other): # оператор меньше
         return False
-    
-    def __eq__(self, other):
+
+    def __eq__(self, other): #оператор равенства
         return isinstance(other, State) and self.matrix == other.matrix
-    
+
     def __hash__(self):
+        # Для получения хеша матрицы преобразуем её в строку и вычисляем хеш
         return hash(str(self.matrix))
-    
+
     def __repr__(self):
+        # Представление объекта в виде строки
         return str(np.array(self.matrix))
 
+
 class Node:
-    def __init__(self, state, parent=None, depth=0, action=None): # тут поменяла значение глубины на 0
+    def __init__(self, state, parent=None, depth=0, action=None):
         self.depth = depth
         self.action = action
         self.parent = parent
         self.state = state
 
-    # просто красивый вывод инфы об узле
+    # просто вывод инфы об узле
     def about_node(self):
         if self.parent:
             print(f"Матрица моего родителя: {self.parent.state.matrix}")
@@ -152,20 +154,19 @@ class Node:
         print(f"Моя матрица: {self.state.matrix}")
         print(f"Моя глубина: {self.depth}")
 
-    # проверка, совпадают ли два узла (проверяем по матрице, если просто через равно - пиздеж получался)
+    # проверка, совпадают ли два узла
     def are_we_same(self, sibling):
         if self.state.matrix == sibling.state.matrix:
             return True
         return False
 
-    # создание копии узла - на всякий, я тут копирую всё и везде, чтобы не дай бог что-то не поменять лишний раз
+    # создание копии узла
     def copy(self):
         node_state = self.state.copy()
         return Node(node_state, self.parent, self.depth, self.action)
 
-    # проверка, есть ли узел self в пройденных - опять же, если циклом с равно проверять ...
-    # ... он пиздел и заработало с такой проверкой. nodes - словарь, у которого ключи - это узлы, а ...
-    # ... значения - f узла (чтобы не ебаться с двумя списками), и вот он ключи(узлы) через  are_we_same
+    # проверка, есть ли узел self в пройденных. nodes - словарь, у которого ключи - это узлы, а ...
+    # ... значения - f узла, и вот он ключи(узлы) через  are_we_same
     # ... сравнивает с self
 
     def is_there_siblings(self, nodes):
@@ -191,13 +192,12 @@ def a1(start, target):
 
     start_node = Node(start, None, 0)
 
-    # это костыль чтобы не ломалось условие на строке 195, убирать нельзя
     start_node.parent = start_node
 
-    # На всякий выводим инфу о корне
+    # информация о корне
     start_node.about_node()
 
-    queue = {}  # из куеуе
+    queue = {}
     passed = {}
 
     # Если начальное состояние = конечное, то возвращаем его
@@ -229,7 +229,7 @@ def a1(start, target):
             print(f"Используемая память: {memory_after - memory_before} байт")
             return current_node
 
-        # если попали в узел, где уже были, берем следующий по приоритету (с минимальным f) из куеуе
+        # если попали в узел, где уже были, берем следующий по приоритету (с минимальным f) из очереди
         if current_node.is_there_siblings(queue):
             if step_mode == 'step':
                 print('Я дубликат')
@@ -334,7 +334,7 @@ def a1(start, target):
         # очищаем f_values, чтобы на новом шаге цикла снова рассматривать текущие 4 варианта куда пойти
         f_values = {}
 
-        # ура, current_node становится new_node
+        # current_node становится new_node
         current_node = new_node.copy()
 
         # Если пошаговый режим, ожидаем команды от пользователя для продолжения
@@ -381,6 +381,7 @@ def a2(start, target):
                 for neighbor in current.get_neighbors():
                     if neighbor not in passed:
                         heappush(preoritet_queue, (depth + neighbor.h2(target), depth + 1, neighbor, path + [current]))
+
     elif step_mode == "step":
         # В пошаговом режиме выводим в консоль, но без строки с глубиной
         while preoritet_queue:
