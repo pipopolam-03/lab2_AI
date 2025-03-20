@@ -1,7 +1,3 @@
-import keyboard
-import tracemalloc
-import time
-import sys
 import math
 
 class State:
@@ -12,6 +8,27 @@ class State:
         # y - строка (список внутри списка)
         self.empty_one_x = empty_one_x
         self.empty_one_y = empty_one_y
+
+    # переопределяем print для красивого вывода
+    def __str__(self):
+        result = ['\n']
+
+        for i in range(3):
+            row = ' '.join(str(self.matrix[i][j]) for j in range(3))
+            result.append(row)
+
+        result.append('\n')
+
+        return '\n'.join(result)
+
+    # проверяем, совпадают ли два состояния
+    def check_goal(self, target):
+        return self.matrix == target.matrix
+
+    # копируем состояние, чтобы случайно не изменить то, что менять нельзя
+    def copy(self):
+        new_matrix = [row.copy() for row in self.matrix]
+        return State(new_matrix, self.empty_one_x, self.empty_one_y)
 
     #  перемещаем пустоту слева направо
     def left(self):
@@ -49,42 +66,30 @@ class State:
             up_state.empty_one_x -= 1
             return up_state
 
-    # вот эта шняга теперь просто возвращает строку, а не печатает, чтобы можно было в файл записать
-    def __str__(self):
-        result = ['\n']
-        
-        for i in range(3):
-            row = ' '.join(str(self.matrix[i][j]) for j in range(3))
-            result.append(row)
-
-        result.append('\n')
-
-        return '\n'.join(result)
-
+    # проверяем, куда можем пойти на текущем шаге
+    # тут я сделала копию и возвращается тоже копия, чтобы не менялось состояние self, а то опасненько
     def sequence(self):
         temp_state = self.copy()
         actions = ''
         if temp_state.up():
             actions += 'u'
-            temp_state.down()
         if temp_state.down():
             actions += 'd'
-            temp_state.up()
         if temp_state.right():
             actions += 'r'
-            temp_state.left()
         if temp_state.left():
             actions += 'l'
-            temp_state.right()
         return actions
 
-    def check_goal(self, target):
-        return self.matrix == target.matrix
+    # ищем в матрице нужный элемент, возвращаем координаты
+    def find_item(self, item):
+        for i in range(3):
+            for j in range(3):
+                if item == self.matrix[i][j]:
+                    return (i, j)
+        return False
 
-    def copy(self):
-        new_matrix = [row.copy() for row in self.matrix]
-        return State(new_matrix, self.empty_one_x, self.empty_one_y)
-
+    # функция h1 из методички (количество элементов не на своем месте)
     def h1(self, target):
         count = 0
         for i in range(3):
@@ -93,51 +98,17 @@ class State:
                     count += 1
         return count
 
-    def find_item(self, item):
-        for i in range(3):
-            for j in range(3):
-                if item == self.matrix[i][j]:
-                    return (i, j)
-        return False
-
+    # функция h1 из методички (сумма расстояний от каждого элемента в self до его положения в целевой матрице)
     def h2(self, target):
-        item = 0
-        # positions = []
         f_values = []
         for i in range(3):
             for j in range(3):
                 item = self.matrix[i][j]
                 position = target.find_item(item)
-                # positions.append(position)
-                f_values.append(abs(position[0] - i) + abs(position[1] - j))
-    
-        return sum(f_values)
-# вроде как не правильно в качестве g возьму просто глубину узла
-#    def g(self, start):
-#        item = 0
-#        # positions = []
-#        f_values = []
-#        for i in range(3):
-#            for j in range(3):
-#                item = self.matrix[i][j]
-#                position = start.find_item(item)
-#                # positions.append(position)
-#                f_values.append(abs(position[0] - i) + abs(position[1] - j))
-#
-#        return sum(f_values)
-    
+                if position:  
+                    f_values.append(abs(position[0] - i) + abs(position[1] - j))
 
-#    def f1(self, start, target):
-#        h1 = self.h1(target)
-#        g = self.g(start)
-#
-#        return g + h1
-#
-#    def f2(self, start, target):
-#        h2 = self.h2(target)
-#        g = self.g(start)
-#
-#        return g + h2
+        return sum(f_values)
 
 
 class Node:
@@ -147,144 +118,154 @@ class Node:
         self.parent = parent
         self.state = state
 
-# Функция эвристического поиска
+    # просто красивый вывод инфы об узле
+    def about_node(self):
+        if self.parent:
+            print(f"Матрица моего родителя: {self.parent.state.matrix}")
+            print(f"Как в меня пришли: {self.action}")
+        print(f"Моя матрица: {self.state.matrix}")
+        print(f"Моя глубина: {self.depth}")
+
+    # проверка, совпадают ли два узла (проверяем по матрице, если просто через равно - пиздеж получался)
+    def are_we_same(self, sibling):
+        if self.state.matrix == sibling.state.matrix:
+            return True
+        return False
+
+    # создание копии узла - на всякий, я тут копирую всё и везде, чтобы не дай бог что-то не поменять лишний раз
+    def copy(self):
+        node_state = self.state.copy()
+        return Node(node_state, self.parent, self.depth, self.action)
+
+    # проверка, есть ли узел self в пройденных - опять же, если циклом с равно проверять ...
+    # ... он пиздел и заработало с такой проверкой. nodes - словарь, у которого ключи - это узлы, а ...
+    # ... значения - f узла (чтобы не ебаться с двумя списками), и вот он ключи(узлы) через  are_we_same
+    # ... сравнивает с self
+
+    def is_there_siblings(self, nodes):
+        for node in nodes:
+            if self.are_we_same(node):
+                return True
+        return False
 
 
-def A(start, target):
+# Эвристический поиск
+
+def A(start, target, h): #h = True - h1, иначе h2
 
     start_node = Node(start, None, 0)
+
+    # это костыль чтобы не ломалось условие на строке 195, убирать нельзя
+    start_node.parent = start_node
+
+    # На всякий выводим инфу о корне
+    start_node.about_node()
+
+    queue = {} # из куеуе
+    passed = {}
 
     # Если начальное состояние = конечное, то возвращаем его
     if start_node.state.check_goal(target):
         return start_node
 
-    # Объявляем очередь из узлов
-    a_queue = [start_node]
-    # Пройденные узлы записываем в виде множества
-    passed_state_matrixes = set()
     step = 0
 
-    # Считаем аддитивную оценочную стоимость
-    f = start_node.depth + start.h1(target)
+    # сразу обзываем узел на текущем шаге current
+    current_node = start_node.copy()
 
-    print(f)
-
-    node = a_queue[0]
-    repeated_nodes = [] # за цикл
-
-    # Пока не дошли до конечного состояния или не прошли все возможные узлы
-    for _ in range(50):
+    while True:
         step += 1
-        passed_state_matrixes.add(str(node.state.matrix))
+
+        # если текущее состояние = целевое - возвращаем его
+        if current_node.state.check_goal(target):
+            return current_node
+
+        # если попали в узел, где уже были, берем следующий по приоритету (с минимальным f) из куеуе
+        if current_node.is_there_siblings(queue):
+            print('Я дубликат')
+            current_node = min(queue, key=queue.get).copy()
+            print("Замена мне: ")
+            current_node.about_node()
 
         print(f"\n--- Шаг {step} ---")
-        print(f"Текущая вершина для раскрытия (глубина {node.depth}):")
-        print(node.state)
+        print(f"Текущая вершина для раскрытия (глубина {current_node.depth}):")
+        print(current_node.state)
 
-        new_nodes = []
-        f_values = []
-        new_state = node.state.copy()
-        moves = node.state.sequence()
-        f_parent = f #родительское f для проверки на монотонность #какая-то хуйня надо разобраться 
+        # словарь для значений f. Вид - {узел Node : значение f его состояния}
+        f_values = {}
 
-        # print(*moves)
-        
-        if 'u' in moves and node.action != 'd':
-            u_state = new_state.up()
-            new_state.down()  # возвращаем в исходное состояние
-            if str(u_state.matrix) not in passed_state_matrixes:                
-                u_node = Node(u_state, node, node.depth + 1, 'u')
-                new_nodes.append(u_node) # записываем в очередь КАЖДЫЙ возможный ход
-                a_queue.append(u_node)
-                f = u_state.h1(target) + node.depth + 1 #тут взяла h1 и прибавила глубину = g
-                print(node.depth)
-                f_values.append(f)
-                print(u_state.h1(target))
-        else:
-            f_values.append(math.inf)
+        # записали в moves доступные ходы
+        moves = current_node.state.sequence()
 
-        if 'd' in moves and node.action != 'u':
-            d_state = new_state.down()
-            new_state.up() # возвращаем в исходное состояние
-            if str(d_state.matrix) not in passed_state_matrixes:                
-                d_node = Node(d_state, node, node.depth + 1, 'd')
-                new_nodes.append(d_node) # записываем в очередь КАЖДЫЙ возможный ход
-                a_queue.append(d_node)
-                f = d_state.h1(target) + node.depth + 1
-                f_values.append(f)
-                print(d_state.h1(target))
-        else:
-            f_values.append(math.inf)
+        if 'u' in moves:
+            up_state = current_node.state.up()
+            up_node = Node(up_state, current_node, current_node.depth + 1, 'u')
 
-        if 'r' in moves and node.action != 'l':
-            r_state = new_state.right()
-            new_state.left() # возвращаем в исходное состояние
-            if str(r_state.matrix) not in passed_state_matrixes:                
-                r_node = Node(r_state, node, node.depth + 1, 'r')
-                new_nodes.append(r_node) # записываем в очередь КАЖДЫЙ возможный ход
-                a_queue.append(r_node)
-                f = r_state.h1(target) + node.depth + 1
-                f_values.append(f)
-                print(r_state.h1(target))
-        else:
-            f_values.append(math.inf)
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # ли в пройденное состояние, если пойдет по этому пути
+            if str(up_state.matrix) not in passed and up_node.state.matrix != current_node.parent.state.matrix:
+                if h == True:
+                    f_values[up_node] = up_node.depth + up_state.h1(target)
+                if h == False:
+                    f_values[up_node] = up_node.depth + up_state.h2(target)
 
-        if 'l' in moves and node.action != 'r':
-            l_state = new_state.left()
-            new_state.right() # возвращаем в исходное состояние
-            if str(l_state.matrix) not in passed_state_matrixes:
-                l_node = Node(l_state, node, node.depth + 1, 'l')
-                new_nodes.append(l_node) # записываем в очередь КАЖДЫЙ возможный ход
-                a_queue.append(l_node)
-                f = l_state.h1(target) + node.depth + 1
-                f_values.append(f)
-                print(l_state.h1(target))
-        else:
-            f_values.append(math.inf)
+        if 'd' in moves:
+            down_state = current_node.state.down()
+            down_node = Node(down_state, current_node, current_node.depth + 1, 'd')
 
-        print(*f_values)
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # ли в пройденное состояние, если пойдет по этому пути
+            if str(down_state.matrix) not in passed  and down_node.state.matrix != current_node.parent.state.matrix:
+                if h == True:
+                    f_values[down_node] = down_node.depth + down_state.h1(target)
+                if h == False:
+                    f_values[down_node] = down_node.depth + down_state.h2(target)
 
-        if node in repeated_nodes:
-            print(new_state.matrix)
-            node = a_queue[-1]  # мб будет работать если это починить
-            print(node.state.matrix)
-        else:
-            # min_f = max(f_parent, min(f_values))
-            min_f = min(f_values)
+        if 'r' in moves:
+            right_state = current_node.state.right()
+            right_node = Node(right_state, current_node, current_node.depth + 1, 'r')
 
-            if f_values.index(min_f) == 0 and node.action != 'd':
-                    new_state.up()
-                    move = 'u'
-            elif f_values.index(min_f) == 1 and node.action != 'u':
-                    new_state.down()
-                    move = 'd'
-            elif f_values.index(min_f) == 3 and node.action != 'r':
-                    new_state.left()
-                    move = 'l'
-            elif f_values.index(min_f) == 2 and node.action != 'l':
-                    new_state.right()
-                    move = 'r'
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # ли в пройденное состояние, если пойдет по этому пути
+            if str(right_state.matrix) not in passed and right_node.state.matrix != current_node.parent.state.matrix:
+                if h == True:
+                    f_values[right_node] = right_node.depth + right_state.h1(target)
+                elif h == False:
+                    f_values[right_node] = right_node.depth + right_state.h2(target)
 
-            child_node = Node(new_state, node, node.depth + 1, move)
-            # new_nodes.append(child_node)
-            # a_queue.append(child_node)
-            passed_state_matrixes.add(str(new_state.matrix)) # добавляем в пройденные
 
-            node = child_node
+        if 'l' in moves:
+            left_state = current_node.state.left()
+            left_node = Node(left_state, current_node, current_node.depth + 1, 'l')
 
-            print(child_node.action)
+            # условие - проверяем матрицу родителя, чтобы не ходить кругами и проверяем, не попадем 
+            # ли в пройденное состояние, если пойдет по этому пути
+            if str(left_state.matrix) not in passed and left_node.state.matrix != current_node.parent.state.matrix:
+                if h == True:
+                    f_values[left_node] = left_node.depth + left_state.h1(target)
+                if h == False:
+                    f_values[left_node] = left_node.depth + left_state.h2(target)
 
-        if new_state.check_goal(target): # является ли целевым
-            print("Целевое состояние достигнуто!")
-            print(f"Глубина {node.depth}")
-            return node
+        # в passed по ключу current_node записываем его значение f
+        if h == True:
+            passed[current_node] = current_node.depth + current_node.state.h1(target)
+        if h == False:
+            passed[current_node] = current_node.depth + current_node.state.h2(target)
 
-        repeated_nodes.append(node)
-        f_values = []  # мы забывали очищать этот список
+        # new_node по приколу копия, в нее записываем приоритетный узел с минимальным f
+        new_node = min(f_values, key=f_values.get)
 
-        #print(*a_queue)
+        # удаляем new_node чтобы потом по нему еще раз не сходить
+        f_values.pop(new_node)
 
-    return None
+        # добавляем в куеуе f_values, чтобы потом можно было по ним сходить
+        queue.update(f_values)
+
+        # очищаем f_values, чтобы на новом шаге цикла снова рассматривать текущие 4 варианта куда пойти
+        f_values = {}
+
+        # ура, current_node становится new_node
+        current_node = new_node.copy()
 
 
 def info():
@@ -298,22 +279,23 @@ def info():
     start = State(start_matrix, empty_x, empty_y)
     print('Матрица с начальным состоянием: ')
     print(start)
+
     # создали матрицу с целевым состоянием
     target = State(target_matrix, 2, 2)
     print('Матрица с конечным состоянием:')
     print(target)
-   
-    result = A(start, target)
-
-    if result:
-        print("\nпоследовательность:", end=' ')
-        actions = [] #список для последовательности перемещений
-        while result:
-            if result.action:
-                actions.append(result.action) # заносим перемещение в список
-            result = result.parent # переход к родительскому узлу
-        actions.reverse() # переворачиваем список
-        print(" ".join(actions)) # вывод последовательности в консоль
+    choice = 0
+    while choice != 3:
+        print('Вы хотите обход:\n   1. h1\n   2. h2\n   3. Выход\n')
+        choice = int(input())
+        if choice == 1:
+            A(start, target, True)
+        elif choice == 2:
+            A(start, target, False)
+        elif choice == 3:
+            print('Выход')
+        else:
+            print('Некорректный ввод')
 
 
 info()
